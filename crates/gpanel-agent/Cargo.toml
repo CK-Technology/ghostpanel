@@ -29,3 +29,7 @@ tracing-subscriber = { workspace = true }
 
 # System monitoring
 sysinfo = "0.30"
+
+# Additional dependencies for registry operations
+anyhow = { workspace = true }
+chrono = { version = "0.4", features = ["serde"] }

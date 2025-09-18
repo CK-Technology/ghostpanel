@@ -12,6 +12,17 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 chrono = { version = "0.4", features = ["serde"] }
 
+# Registry and container image support
+reqwest = { workspace = true }
+sha2 = { workspace = true }
+digest = { workspace = true }
+bytes = { workspace = true }
+uuid = { workspace = true }
+tar = { workspace = true }
+flate2 = { workspace = true }
+oci-spec = { workspace = true }
+urlencoding = "2.1"
+
 # Future QUIC dependencies (placeholder for custom GQUIC library)
 # quinn = { version = "0.11", optional = true }
 # rustls = { version = "0.21", optional = true }

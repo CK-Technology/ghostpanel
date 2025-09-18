@@ -34,7 +34,18 @@ leptos_router = "0.6"
 axum = { version = "0.7", features = ["macros", "ws"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "fs"] }
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# Registry and container image support
+sha2 = "0.10"
+digest = "0.10"
+bytes = "1.7"
+uuid = { version = "1.10", features = ["v4", "serde"] }
+tar = "0.4"
+flate2 = "1.0"
+
+# Docker Registry v2 API support
+oci-spec = "0.6"
 
 # QUIC/HTTP3 for next-gen networking
 quinn = "0.11"

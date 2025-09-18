@@ -12,6 +12,7 @@ use crate::pages::{
     gaming::GamingDashboard,
     login::LoginPage,
     settings::SettingsPage,
+    registries::RegistryManagement,
 };
 use crate::components::layout::Layout;
 
@@ -167,6 +168,10 @@ pub fn AuthGuard() -> impl IntoView {
                     // Image Management
                     <Route path="/images" view=ImageList/>
                     <Route path="/images/:id" view=|| view! { <div>"Image Details"</div> }/>
+
+                    // Registry Management
+                    <Route path="/registries" view=RegistryManagement/>
+                    <Route path="/registries/:name" view=|| view! { <div>"Registry Details"</div> }/>
 
                     // Network Management
                     <Route path="/networks" view=NetworkList/>

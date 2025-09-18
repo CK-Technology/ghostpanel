@@ -1,11 +1,15 @@
 pub mod api;
+pub mod bolt;
 pub mod config;
 pub mod container;
 pub mod error;
 pub mod quic;
+pub mod registry;
 
 pub use error::{Error, Result};
 pub use container::*;
+pub use registry::*;
+pub use bolt::*;
 
 /// Core types and utilities shared across GhostPanel components
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -18,6 +22,7 @@ pub struct GhostPanelConfig {
     pub enable_http3: bool,
     pub tls_cert_path: Option<String>,
     pub tls_key_path: Option<String>,
+    pub registries: Vec<RegistryConfig>,
 }
 
 impl Default for GhostPanelConfig {
@@ -31,6 +36,24 @@ impl Default for GhostPanelConfig {
             enable_http3: true,
             tls_cert_path: None,
             tls_key_path: None,
+            registries: vec![
+                // Default local Drift registry
+                RegistryConfig {
+                    name: "local-drift".to_string(),
+                    url: "http://localhost:5000".to_string(),
+                    username: None,
+                    password: None,
+                    insecure: true,
+                },
+                // Docker Hub for public images
+                RegistryConfig {
+                    name: "docker-hub".to_string(),
+                    url: "https://registry-1.docker.io".to_string(),
+                    username: None,
+                    password: None,
+                    insecure: false,
+                },
+            ],
         }
     }
 }

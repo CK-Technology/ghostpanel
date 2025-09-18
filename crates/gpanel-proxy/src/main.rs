@@ -71,6 +71,7 @@ async fn main() -> Result<()> {
         enable_http3: true,
         tls_cert_path: args.cert_path.clone(),
         tls_key_path: args.key_path.clone(),
+        registries: Vec::new(), // No registries needed for proxy
     };
 
     // Create the proxy instance

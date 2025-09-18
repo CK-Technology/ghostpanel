@@ -28,6 +28,7 @@ pub fn Sidebar() -> impl IntoView {
                 <A href="/" class="nav-item">"📊 Dashboard"</A>
                 <A href="/containers" class="nav-item">"📦 Containers"</A>
                 <A href="/images" class="nav-item">"🖼️ Images"</A>
+                <A href="/registries" class="nav-item">"🏛️ Registries"</A>
                 <A href="/networks" class="nav-item">"🌐 Networks"</A>
                 <A href="/volumes" class="nav-item">"💾 Volumes"</A>
                 <A href="/gaming" class="nav-item">"🎮 Gaming"</A>
