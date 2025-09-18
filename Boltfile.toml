@@ -1,0 +1,237 @@
+# GhostPanel - Portainer for Bolt Containers
+# The ultimate Rust-powered container management interface
+
+project = "ghostpanel"
+
+[settings]
+# Development vs Production profiles
+profile = "development"  # or "production"
+
+[volumes]
+# Persistent data storage
+gpanel_data = { size = "10Gi", driver = "bolt" }
+gpanel_config = { size = "1Gi", driver = "bolt" }
+gpanel_logs = { size = "5Gi", driver = "bolt" }
+gpanel_certs = { size = "100Mi", driver = "bolt" }
+
+[networks.ghostpanel-net]
+driver = "bolt"                        # QUIC networking
+subnet = "10.99.0.0/16"
+gateway = "10.99.0.1"
+
+# ==============================================================================
+# CORE SERVICES
+# ==============================================================================
+
+# Web Interface - Leptos Frontend (Port 9443)
+[services.gpanel-web]
+build = "./crates/gpanel-web"
+ports = ["9443:9443"]
+networks = ["ghostpanel-net"]
+depends_on = ["gpanel-agent", "gpanel-cli"]
+
+[services.gpanel-web.env]
+RUST_LOG = "info"
+GPANEL_AGENT_URL = "http://gpanel-agent:8000"
+GPANEL_CLI_URL = "http://gpanel-cli:9000"
+BOLT_API_URL = "bolt://host.bolt.internal"
+
+[services.gpanel-web.volumes]
+gpanel_certs = "/app/certs"
+gpanel_config = "/app/config"
+
+[services.gpanel-web.labels]
+"traefik.enable" = "true"
+"traefik.http.routers.ghostpanel.rule" = "Host(`ghostpanel.local`)"
+"traefik.http.services.ghostpanel.loadbalancer.server.port" = "9443"
+
+# Agent Service - System Monitoring (Port 8000)
+[services.gpanel-agent]
+build = "./crates/gpanel-agent"
+ports = ["8000:8000"]
+networks = ["ghostpanel-net"]
+privileged = true  # Required for system monitoring
+
+[services.gpanel-agent.env]
+RUST_LOG = "info"
+BOLT_SOCKET = "/var/run/bolt.sock"
+GPANEL_DATA_DIR = "/data"
+
+[services.gpanel-agent.volumes]
+gpanel_data = "/data"
+gpanel_logs = "/logs"
+# Mount Bolt socket for direct communication
+"/var/run/bolt.sock" = "/var/run/bolt.sock"
+# System monitoring access
+"/proc" = "/host/proc:ro"
+"/sys" = "/host/sys:ro"
+
+[services.gpanel-agent.capabilities]
+add = ["SYS_ADMIN", "NET_ADMIN"]
+
+# CLI Bridge - Command Interface (Port 9000)
+[services.gpanel-cli]
+build = "./crates/gpanel-cli"
+ports = ["9000:9000"]
+networks = ["ghostpanel-net"]
+
+[services.gpanel-cli.env]
+RUST_LOG = "info"
+BOLT_SOCKET = "/var/run/bolt.sock"
+GPANEL_AGENT_URL = "http://gpanel-agent:8000"
+
+[services.gpanel-cli.volumes]
+gpanel_data = "/data:ro"
+gpanel_config = "/config"
+"/var/run/bolt.sock" = "/var/run/bolt.sock"
+
+# ==============================================================================
+# DEVELOPMENT SERVICES
+# ==============================================================================
+
+# Development reverse proxy (optional)
+[services.traefik]
+image = "traefik:v2.10"
+ports = ["80:80", "443:443", "8080:8080"]
+networks = ["ghostpanel-net"]
+command = [
+  "--api.insecure=true",
+  "--providers.docker=true",
+  "--providers.docker.exposedbydefault=false",
+  "--entrypoints.web.address=:80",
+  "--entrypoints.websecure.address=:443"
+]
+
+[services.traefik.volumes]
+"/var/run/docker.sock" = "/var/run/docker.sock:ro"
+gpanel_certs = "/certs"
+
+# Development database (optional - for persistent sessions)
+[services.postgres]
+capsule = "postgres:15"
+networks = ["ghostpanel-net"]
+
+[services.postgres.env]
+POSTGRES_DB = "ghostpanel"
+POSTGRES_USER = "gpanel"
+POSTGRES_PASSWORD = "dev_password_change_in_prod"
+
+[services.postgres.volumes]
+gpanel_data = "/var/lib/postgresql/data"
+
+# Redis for caching and sessions
+[services.redis]
+capsule = "redis:7-alpine"
+networks = ["ghostpanel-net"]
+command = ["redis-server", "--appendonly", "yes"]
+
+[services.redis.volumes]
+gpanel_data = "/data"
+
+# ==============================================================================
+# GAMING INTEGRATION SERVICES
+# ==============================================================================
+
+# GPU Monitoring Service (connects to nvbind)
+[services.gpanel-gpu]
+build = "./crates/gpanel-gpu"
+networks = ["ghostpanel-net"]
+privileged = true
+
+[services.gpanel-gpu.gaming.gpu]
+runtime = "nvbind"
+isolation_level = "shared"  # Allow monitoring access
+
+[services.gpanel-gpu.gaming.gpu.nvbind]
+driver = "auto"
+devices = ["gpu:*"]  # Monitor all GPUs
+performance_mode = "monitoring"
+wsl2_optimized = true
+
+[services.gpanel-gpu.volumes]
+gpanel_data = "/data"
+"/dev" = "/dev"
+
+# Steam Integration Service (optional)
+[services.gpanel-steam]
+build = "./crates/gpanel-steam"
+networks = ["ghostpanel-net"]
+
+[services.gpanel-steam.gaming]
+profile = "container-manager"
+wine_optimizations = false  # We're not running games, just managing
+
+[services.gpanel-steam.volumes]
+gpanel_data = "/data"
+
+# ==============================================================================
+# PRODUCTION OVERRIDES
+# ==============================================================================
+
+# Production-specific configurations
+[profiles.production.services.gpanel-web.env]
+RUST_LOG = "warn"
+GPANEL_SECURE = "true"
+
+[profiles.production.services.postgres.env]
+POSTGRES_PASSWORD = "${GPANEL_DB_PASSWORD}"  # Use environment variable
+
+[profiles.production.volumes]
+# Production uses larger, more persistent storage
+gpanel_data = { size = "100Gi", driver = "bolt", backup = true }
+gpanel_logs = { size = "50Gi", driver = "bolt", retention = "30d" }
+
+# ==============================================================================
+# SNAPSHOTS & BACKUP
+# ==============================================================================
+
+[snapshots]
+enabled = true
+filesystem = "auto"  # Auto-detect BTRFS/ZFS
+
+[snapshots.retention]
+keep_daily = 7
+keep_weekly = 4
+keep_monthly = 6
+max_total = 50
+
+[snapshots.triggers]
+daily = "02:00"
+before_surge_up = true
+min_change_threshold = "100MB"
+
+[[snapshots.named_snapshots]]
+name = "ghostpanel-stable"
+description = "Stable GhostPanel configuration"
+keep_forever = true
+
+# ==============================================================================
+# NETWORKING & SECURITY
+# ==============================================================================
+
+# QUIC networking configuration for ultra-low latency
+[networks.ghostpanel-net.quic]
+enabled = true
+congestion_control = "bbr2"
+initial_rtt = "50ms"
+
+# Security policies
+[security]
+enable_selinux = false  # Disable for development
+enable_apparmor = true
+
+[security.firewall]
+default_policy = "drop"
+allow_established = true
+
+[[security.firewall.rules]]
+action = "allow"
+port = 9443
+protocol = "tcp"
+source = "any"
+
+[[security.firewall.rules]]
+action = "allow"
+port = [8000, 9000]
+protocol = "tcp"
+source = "ghostpanel-net"

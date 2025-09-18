@@ -2,5 +2,44 @@
 name = "ghostpanel"
 version = "0.1.0"
 edition = "2024"
+description = "Portainer-like container management interface for Bolt Containers"
+authors = ["CK Technology"]
+repository = "https://github.com/CK-Technology/ghostpanel"
+
+[workspace]
+members = [
+    "crates/gpanel-core",
+    "crates/gpanel-web",
+    "crates/gpanel-agent",
+    "crates/gpanel-cli",
+    "crates/gpanel-proxy"
+]
+
+[workspace.dependencies]
+# Core dependencies
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Web framework (Leptos)
+leptos = { version = "0.6", features = ["csr"] }
+leptos_axum = "0.6"
+leptos_meta = "0.6"
+leptos_router = "0.6"
+
+# HTTP/API
+axum = { version = "0.7", features = ["macros", "ws"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+reqwest = { version = "0.12", features = ["json"] }
+
+# QUIC/HTTP3 for next-gen networking
+quinn = "0.11"
+h3-quinn = "0.0.5"
+h3 = "0.0.4"
 
 [dependencies]
+gpanel-core = { path = "crates/gpanel-core" }

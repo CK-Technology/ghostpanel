@@ -1,0 +1,1 @@
+// API types for communication between components

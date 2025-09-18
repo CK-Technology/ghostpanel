@@ -1,0 +1,53 @@
+[package]
+name = "gpanel-proxy"
+version = "0.1.0"
+edition = "2024"
+description = "QUIC-based socket proxy for GhostPanel edge networking"
+
+[[bin]]
+name = "gpanel-proxy"
+path = "src/main.rs"
+
+[dependencies]
+gpanel-core = { path = "../gpanel-core" }
+
+# QUIC/HTTP3 stack
+quinn = { workspace = true }
+h3-quinn = { workspace = true }
+h3 = { workspace = true }
+rustls = "0.21"
+rustls-pemfile = "1.0"
+
+# Development certificate generation
+rcgen = { version = "0.11", optional = true }
+
+# Async runtime
+tokio = { workspace = true, features = ["net", "rt-multi-thread", "signal"] }
+
+# Web server for fallback HTTP/1.1
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# HTTP types
+http = "0.2"
+bytes = "1.0"
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Configuration
+clap = { version = "4.0", features = ["derive"] }
+
+# Networking utilities
+socket2 = "0.5"
+futures-util = "0.3"
+
+[features]
+default = ["dev-certs"]
+dev-certs = ["dep:rcgen"]
